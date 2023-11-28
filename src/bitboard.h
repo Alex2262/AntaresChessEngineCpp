@@ -104,6 +104,22 @@ constexpr Square operator+(Square s, Direction d) {
     return Square(static_cast<int32_t>(s) + static_cast<int32_t>(d));
 }
 
+template<Color color>
+inline constexpr Direction get_up_direction() {
+    return []() {
+        if constexpr (color == WHITE) return NORTH;
+        else return SOUTH;
+    };
+}
+
+template<Color color>
+inline constexpr Direction get_down_direction() {
+    return []() {
+        if constexpr (color == WHITE) return SOUTH;
+        else return NORTH;
+    };
+}
+
 [[nodiscard]] Square lsb(BITBOARD bitboard);
 [[nodiscard]] Square msb(BITBOARD bitboard);
 
