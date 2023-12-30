@@ -36,9 +36,11 @@ namespace Stage {
     constexpr int TT_probe = 0;
     constexpr int GenNoisy = 1;
     constexpr int Noisy = 2;    // Only play good noisy moves in this stage for negamax
-    constexpr int GenQ_BN = 3;
-    constexpr int Q_BN = 4;  // Quiet + Bad Noisy
-    constexpr int Terminated = 5;
+    constexpr int Killer1 = 3;
+    constexpr int Killer2 = 4;
+    constexpr int GenQ_BN = 5;
+    constexpr int Q_BN = 6;  // Quiet + Bad Noisy
+    constexpr int Terminated = 7;
 }
 
 class Generator {
@@ -50,6 +52,8 @@ public:
     ~Generator() = default;
 
     Move tt_move;
+    Move killer1;
+    Move killer2;
 
     Thread_State *thread_state;
     Position *position;
@@ -90,7 +94,7 @@ public:
                 if (scored_move.move.is_capture(*position)) continue;
             }
 
-            if (scored_move.move == tt_move) continue;
+            if (scored_move.move == tt_move || scored_move.move == killer1 || scored_move.move == killer2) continue;
 
             if (best_score < scored_move.score) {
                 best_score = scored_move.score;
@@ -132,7 +136,7 @@ public:
             if (current_scored_moves[move_index].move == tt_move) move_index++;
 
             if (move_index >= good_capture_count) {
-                if constexpr (!qsearch) stage = Stage::GenQ_BN;
+                if constexpr (!qsearch) stage = Stage::Killer1;
                 else if (move_index >= current_scored_moves.size()) stage = Stage::Terminated;
             }
 
@@ -142,6 +146,16 @@ public:
 
                 move_index++;
             }
+        }
+
+        if (stage == Stage::Killer1) {
+            stage = Stage::Killer2;
+            if (position->is_pseudo_legal(killer1)) return {killer1, 30000, true}; // TODO: Get exact move ordering score
+        }
+
+        if (stage == Stage::Killer2) {
+            stage = Stage::GenQ_BN;
+            if (position->is_pseudo_legal(killer2)) return {killer2, 25000, true}; // TODO: Get exact move ordering score
         }
 
         if (stage == Stage::GenQ_BN) {

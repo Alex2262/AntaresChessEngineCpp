@@ -157,6 +157,9 @@ void Generator::reset_negamax(Move tt_move_passed, InformativeMove last_moves_pa
     stage = Stage::TT_probe;
     tt_move = tt_move_passed;
 
+    killer1 = thread_state->killer_moves[0][search_ply].normal_move();
+    killer2 = thread_state->killer_moves[1][search_ply].normal_move();
+
     move_index = 0;
 
     for (int last_move_i = 0; last_move_i < LAST_MOVE_COUNTS; last_move_i++) {
