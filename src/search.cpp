@@ -465,6 +465,14 @@ SCORE_TYPE qsearch(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
                                          [position.board[move.target()]]
                                          [move.target()],
                                          bonus);
+
+                    // Decay the history of the tt move
+                    if (move != tt_move && tt_move != NO_MOVE) {
+                        update_history_entry(thread_state.history_moves
+                                             [position.board[tt_move.origin()]][tt_move.target()],
+                                             -bonus);
+                    }
+
                 } else {
                     update_history_entry(thread_state.history_moves
                                          [position.board[move.origin()]][move.target()],
