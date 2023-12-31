@@ -384,6 +384,8 @@ SCORE_TYPE qsearch(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
         return tt_value;
     }
 
+    bool tt_move_noisy = tt_move.is_capture(position) || tt_move.type() == MOVE_TYPE_EP;
+
     // Get the static evaluation of the position
     SCORE_TYPE static_eval = engine.probe_tt_evaluation(position.hash_key);
     if (static_eval == NO_EVALUATION) static_eval = engine.evaluate<NNUE>(thread_id);
@@ -468,9 +470,17 @@ SCORE_TYPE qsearch(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
 
                     // Decay the history of the tt move
                     if (move != tt_move && tt_move != NO_MOVE) {
-                        update_history_entry(thread_state.history_moves
-                                             [position.board[tt_move.origin()]][tt_move.target()],
-                                             -bonus);
+                        if (tt_move_noisy) {
+                            update_history_entry(thread_state.capture_history[true]
+                                                 [position.board[tt_move.origin()]]
+                                                 [position.board[tt_move.target()]]
+                                                 [tt_move.target()],
+                                                 bonus);
+                        } else {
+                            update_history_entry(thread_state.history_moves
+                                                 [position.board[tt_move.origin()]][tt_move.target()],
+                                                 -bonus);
+                        }
                     }
 
                 } else {
