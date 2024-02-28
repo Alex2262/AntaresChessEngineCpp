@@ -573,7 +573,13 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
     short tt_hash_flag = HASH_FLAG_UPPER;
 
     // TT cutoffs
-    if (tt_return_type == RETURN_HASH_SCORE && !pv_node && !singular_search) return tt_value;
+    // 1. Probing must result in the flag that allows for returning the hash score
+    // 2. No cutoff in pv node due to potential failure to detect repetitions in a principal variation
+    // 3. No cutoff in singular searches, as you want to check for singularity
+    // 4. Only cutoff in either a cutnode (fail high nodes) or
+    //      all nodes (fail low nodes, !cutnode && !pv_node) where the tt_value serves as a better lowerbound.
+    if (tt_return_type == RETURN_HASH_SCORE && !pv_node && !singular_search && (cutnode || tt_value <= alpha))
+        return tt_value;
 
     // Calculate in check
     if (position.state_stack[thread_state.search_ply].in_check != -1)
