@@ -68,9 +68,7 @@ struct SearchParameters {
     T NMP_depth_divisor = {4, 2, 6, 1, "NMP_depth_divisor"};
     T NMP_eval_divisor  = {345, 100, 400, 40, "NMP_eval_divisor"};
 
-    T SEE_base_depth  = {2,  1, 10,  1, "SEE_base_depth"};
-    T SEE_noisy_depth = {2,  0,  4,  1, "SEE_noisy_depth"};
-    T SEE_pv_depth    = {5,  0,  5,  1, "SEE_pv_depth"};
+    T SEE_depth = {7,  1, 10,  1, "SEE_base_depth"};
 
     T LMP_margin_quiet = {2, 1, 4, 1, "LMP_margin_quiet"};
 
@@ -96,9 +94,7 @@ struct SearchParameters {
             &NMP_depth_divisor,
             &NMP_eval_divisor,
 
-            &SEE_base_depth,
-            &SEE_noisy_depth,
-            &SEE_pv_depth,
+            &SEE_depth,
 
             &LMP_margin_quiet,
 

@@ -738,6 +738,9 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
             }
         }
 
+        PLY_TYPE base_reduction = engine.LMR_REDUCTIONS_QUIET[depth][std::min(legal_moves, 63)];
+        PLY_TYPE lmr_base_depth = std::max(depth - base_reduction, 0);
+
         // Pruning
         if (!root && legal_moves >= 1 && abs(best_score) < MATE_BOUND && !engine.datagen) {
             // Late Move Pruning
@@ -758,11 +761,9 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
                 move_history_score <= (depth + improving) * -search_params.history_pruning_divisor.v) continue;
 
             // SEE Pruning
-            if (depth <= (search_params.SEE_base_depth.v +
-                          search_params.SEE_noisy_depth.v * !quiet +
-                          search_params.SEE_pv_depth.v * pv_node)
+            if (depth <= search_params.SEE_depth.v + base_reduction
                  && legal_moves >= 3 && move_history_score <= 5000 &&
-                 !get_static_exchange_evaluation(position, move, (quiet ? -50 : -90) * depth))
+                 !get_static_exchange_evaluation(position, move, (quiet ? -24 * lmr_base_depth * lmr_base_depth: -90 * depth)))
                 continue;
 
         }
