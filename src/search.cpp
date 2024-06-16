@@ -1073,7 +1073,10 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
             && (best_move == NO_MOVE || !(best_move.is_capture(position) || best_move.type() == MOVE_TYPE_EP))
             && !(tt_hash_flag == HASH_FLAG_LOWER && best_score <= position.state_stack[thread_state.search_ply].static_eval)
             && !(tt_hash_flag == HASH_FLAG_UPPER && best_score >= position.state_stack[thread_state.search_ply].static_eval)) {
-            thread_state.update_correction_history_score(depth, best_score - position.state_stack[thread_state.search_ply].static_eval);
+            thread_state.update_correction_history_score(
+                    depth,
+                    best_score - position.state_stack[thread_state.search_ply].static_eval + pv_node
+                    );
         }
 
         engine.record_tt_entry(thread_id, position.hash_key, best_score, tt_hash_flag, best_move, depth,
