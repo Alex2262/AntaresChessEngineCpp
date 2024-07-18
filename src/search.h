@@ -327,6 +327,8 @@ public:
 };
 
 void update_history_entry(SCORE_TYPE& score, SCORE_TYPE bonus, SCORE_TYPE max_score);
+void update_continuation_history(Thread_State& thread_state, InformativeMove informative_move,
+                                 InformativeMove last_moves[], int bonus);
 void update_histories(Thread_State& thread_state, InformativeMove informative_move,
                       InformativeMove last_moves[], bool quiet, bool winning_capture,
                       int bonus);

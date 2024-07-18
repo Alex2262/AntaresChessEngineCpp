@@ -323,6 +323,15 @@ void update_history_entry(SCORE_TYPE& score, SCORE_TYPE bonus, SCORE_TYPE max_sc
     score += bonus - (score * abs(bonus)) / max_score;
 }
 
+void update_continuation_history(Thread_State& thread_state, InformativeMove informative_move,
+                                 InformativeMove last_moves[], int bonus) {
+    for (int last_move_index = 0; last_move_index < LAST_MOVE_COUNTS; last_move_index++) {
+        if (last_moves[last_move_index] != NO_INFORMATIVE_MOVE) {
+            update_history_entry(thread_state.get_continuation_history_entry(last_moves[last_move_index], informative_move),
+                                 bonus, search_params.H_max_cont.v);
+        }
+    }
+}
 
 void update_histories(Thread_State& thread_state, InformativeMove informative_move,
                       InformativeMove last_moves[], bool quiet, bool winning_capture,
@@ -339,12 +348,7 @@ void update_histories(Thread_State& thread_state, InformativeMove informative_mo
                              [position.board[move.origin()]][move.target()],
                              bonus, search_params.H_max_quiet.v);
 
-        for (int last_move_index = 0; last_move_index < LAST_MOVE_COUNTS; last_move_index++) {
-            if (last_moves[last_move_index] != NO_INFORMATIVE_MOVE) {
-                update_history_entry(thread_state.get_continuation_history_entry(last_moves[last_move_index], informative_move),
-                                     bonus, search_params.H_max_cont.v);
-            }
-        }
+        update_continuation_history(thread_state, informative_move, last_moves, bonus);
 
     } else {
         update_history_entry(thread_state.capture_history[winning_capture][position.board[move.origin()]]
@@ -962,7 +966,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
             return_eval = -negamax<NNUE>(engine, -alpha - 1, -alpha, lmr_depth, true, true, thread_id);
 
             // Check if we need to search at full depth with a zero window
-            full_depth_zero_window = return_eval > alpha && lmr_depth != new_depth;
+            full_depth_zero_window = return_eval > alpha && reduction;
         }
 
         else {
@@ -980,6 +984,12 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
             }
 
             return_eval = -negamax<NNUE>(engine, -alpha - 1, -alpha, new_depth, true, !cutnode, thread_id);
+
+            if (reduction && quiet && (return_eval <= alpha || return_eval >= beta)) {
+                SCORE_TYPE bonus = new_depth * (new_depth + 1) - 1;
+                if (return_eval <= alpha) bonus = -bonus;
+                update_continuation_history(thread_state, informative_move, last_moves, bonus);
+            }
         }
 
         // Search to a full depth at normal bounds if necessary
