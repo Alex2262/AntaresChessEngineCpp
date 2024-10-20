@@ -587,7 +587,8 @@ template SCORE_TYPE qsearch<NO_NNUE >(Engine& engine, SCORE_TYPE alpha, SCORE_TY
 // This is a recursive search function based on the minimax algorithm that uses alpha-beta pruning
 // among other heuristics.
 template<bool NNUE>
-SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE depth, bool do_null, bool cutnode, int thread_id) {
+SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE depth,
+                   bool do_null, bool cutnode, bool full_null_search, int thread_id) {
 
     // Initialize Variables
     Thread_State& thread_state = engine.thread_states[thread_id];
@@ -746,7 +747,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
             thread_state.game_ply++;
 
             // zero window search with reduced depth
-            SCORE_TYPE return_eval = -negamax<NNUE>(engine, -beta, -beta + 1, depth - reduction, false, !cutnode, thread_id);
+            SCORE_TYPE return_eval = -negamax<NNUE>(engine, -beta, -beta + 1, depth - reduction, false, !cutnode, true, thread_id);
 
             thread_state.game_ply--;
             thread_state.search_ply--;
@@ -756,7 +757,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
                 if (return_eval >= MATE_BOUND) return beta;
                 if (depth <= 15) return return_eval;
 
-                SCORE_TYPE verification_eval = negamax<NNUE>(engine, beta - 1, beta, depth - reduction, false, cutnode, thread_id);
+                SCORE_TYPE verification_eval = negamax<NNUE>(engine, beta - 1, beta, depth - reduction, false, cutnode, false, thread_id);
                 if (verification_eval > beta) return return_eval;
             }
         }
@@ -912,7 +913,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
 
             position.state_stack[thread_state.search_ply].excluded_move = move;
             SCORE_TYPE return_eval = negamax<NNUE>(engine, singular_beta - 1, singular_beta, (depth - 1) / 2,
-                                                   false, cutnode, thread_id);
+                                                   false, cutnode, full_null_search, thread_id);
             position.state_stack[thread_state.search_ply].excluded_move = NO_MOVE;
 
             thread_state.search_ply--;
@@ -1012,7 +1013,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
             auto lmr_depth = new_depth - reduction;
 
             // Recursively search
-            return_eval = -negamax<NNUE>(engine, -alpha - 1, -alpha, lmr_depth, true, true, thread_id);
+            return_eval = -negamax<NNUE>(engine, -alpha - 1, -alpha, lmr_depth, true, true, full_null_search, thread_id);
 
             // Check if we need to search at full depth with a zero window
             full_depth_zero_window = return_eval > alpha && lmr_depth != new_depth;
@@ -1032,14 +1033,14 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
                 new_depth -= return_eval <  best_score + new_depth;                      // Shallower Search
             }
 
-            return_eval = -negamax<NNUE>(engine, -alpha - 1, -alpha, new_depth, true, !cutnode, thread_id);
+            return_eval = -negamax<NNUE>(engine, -alpha - 1, -alpha, new_depth, true, !cutnode, full_null_search, thread_id);
         }
 
         // Search to a full depth at normal bounds if necessary
         if (   return_eval == -SCORE_INF
             || (pv_node && ((return_eval > alpha && return_eval < beta)
             || legal_moves == 0))) {
-            return_eval = -negamax<NNUE>(engine, -beta, -alpha, new_depth, true, false, thread_id);
+            return_eval = -negamax<NNUE>(engine, -beta, -alpha, new_depth, true, false, full_null_search, thread_id);
         }
 
         // Undo the move and other changes
@@ -1136,6 +1137,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
 
     if (!singular_search) {
         if (!in_check
+            && !full_null_search
             && (best_move == NO_MOVE || !(best_move.is_capture(position) || best_move.type() == MOVE_TYPE_EP))
             && !(tt_hash_flag == HASH_FLAG_LOWER && best_score <= position.state_stack[thread_state.search_ply].static_eval)
             && !(tt_hash_flag == HASH_FLAG_UPPER && best_score >= position.state_stack[thread_state.search_ply].static_eval)) {
@@ -1149,8 +1151,10 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
     return best_score;
 }
 
-template SCORE_TYPE negamax<USE_NNUE>(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE depth, bool do_null, bool cutnode, int thread_id);
-template SCORE_TYPE negamax<NO_NNUE >(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE depth, bool do_null, bool cutnode, int thread_id);
+template SCORE_TYPE negamax<USE_NNUE>(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE depth,
+        bool do_null, bool cutnode, bool full_null_search, int thread_id);
+template SCORE_TYPE negamax<NO_NNUE >(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE depth,
+        bool do_null, bool cutnode, bool full_null_search, int thread_id);
 
 
 void print_thinking(Engine& engine, NodeType node, SCORE_TYPE best_score, int pv_number, int thread_id) {
@@ -1260,7 +1264,7 @@ SCORE_TYPE aspiration_window(Engine& engine, SCORE_TYPE previous_score, PLY_TYPE
         if (alpha <= -1000) alpha = -SCORE_INF;
         if (beta  >=  1000) beta  =  SCORE_INF;
 
-        return_eval = negamax<NNUE>(engine, alpha, beta, depth, false, false, thread_id);
+        return_eval = negamax<NNUE>(engine, alpha, beta, depth, false, false, false, thread_id);
 
         if (engine.stopped) break;
 
@@ -1332,7 +1336,7 @@ SCORE_TYPE multi_pv_search(Engine& engine, SCORE_TYPE previous_score, PLY_TYPE& 
 
     int alternate_pvs = std::min(engine.multi_pv, static_cast<int>(engine.root_moves.size()));
     for (int i = 1; i < alternate_pvs; i++) {
-        int pv_score = negamax<NNUE>(engine, -SCORE_INF, SCORE_INF, depth, false, false, thread_id);
+        int pv_score = negamax<NNUE>(engine, -SCORE_INF, SCORE_INF, depth, false, false, false, thread_id);
 
         if (engine.stopped) break;
 
