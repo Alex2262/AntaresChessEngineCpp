@@ -672,10 +672,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
      * that the position is awful.
      */
 
-    // The failing heuristic is the opposite. We are failing when the current evaluation is worse than the
-    // previous evaluation by a certain margin.
     bool improving = false;
-    bool failing = false;
 
     // Save the current evaluation
     if (!in_check) {
@@ -706,8 +703,6 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
 
             if (past_eval != NO_EVALUATION) {
                 improving = position.state_stack[thread_state.search_ply].static_eval > past_eval;
-                failing   = !pv_node &&
-                            position.state_stack[thread_state.search_ply].static_eval < past_eval - (60 + 40 * depth);
             }
         }
     }
@@ -844,7 +839,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
             // Quiet Late Move Pruning
             if (   !pv_node
                 && quiet
-                && legal_moves >= search_params.LMP_margin_quiet.v + depth * depth / (1 + !improving + failing)) break;
+                && legal_moves >= search_params.LMP_margin_quiet.v + depth * depth / (1 + !improving)) break;
 
             // Futility Pruning
             if (   !pv_node
@@ -987,7 +982,6 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
 
             // Fewer reductions when improving, since the current node and moves searched in it are more important
             reduction -= improving;
-            reduction += failing;
 
             // Fewer reductions for interesting moves which we define above
             reduction -= interesting;
