@@ -70,7 +70,8 @@ constexpr inline Color get_color(Piece piece) {
 }
 
 constexpr inline bool is_major(Piece piece) {
-    return get_piece_type(piece, get_color(piece)) >= ROOK;
+    PieceType piece_type = get_piece_type(piece, get_color(piece));
+    return piece_type == ROOK || piece_type == QUEEN;
 }
 
 constexpr inline bool is_minor(Piece piece) {
