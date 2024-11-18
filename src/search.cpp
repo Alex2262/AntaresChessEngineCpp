@@ -738,7 +738,7 @@ SCORE_TYPE negamax(Engine& engine, SCORE_TYPE alpha, SCORE_TYPE beta, PLY_TYPE d
             // Adaptive NMP
             int reduction = search_params.NMP_base.v +
                             depth / search_params.NMP_depth_divisor.v +
-                            std::clamp((eval - beta) / search_params.NMP_eval_divisor.v, -1, 3);
+                            std::clamp((eval - beta) / search_params.NMP_eval_divisor.v, 0, 3);
 
             position.make_null_move(position.state_stack[thread_state.search_ply], thread_state.fifty_move);
 
