@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[]) {
 
-    printf("HELLOOOOOOOOOOOOO");
+    printf("HELLOOOOOOOOOOOOO\n");
 
 
     return 0;
