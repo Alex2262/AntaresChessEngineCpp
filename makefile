@@ -2,9 +2,7 @@
 # engine name
 EXE      = Altair
 
-SOURCES      := src/evaluation.cpp src/main.cpp src/move.cpp src/position.cpp src/search.cpp \
-				src/useful.cpp src/uci.cpp src/see.cpp src/bitboard.cpp src/move_ordering.cpp \
-				src/timeman.cpp
+SOURCES      := src/main.cpp
 
 CXXFLAGS     := -O3 -std=c++20 -DNDEBUG -flto
 
@@ -33,7 +31,6 @@ else
     DETECTED_OS := $(shell uname -s)
     ifneq (,$(findstring clang,$(shell $(CXX) --version)))
         ifneq ($(DETECTED_OS), Darwin)
-            CXXFLAGS += -fuse-ld=lld
 
             ifeq (,$(shell which llvm-profdata))
               	override PGO := false
@@ -44,7 +41,6 @@ else
     else
     	override PGO := false
     endif
-	CXXFLAGS += -pthread
 
 endif
 
